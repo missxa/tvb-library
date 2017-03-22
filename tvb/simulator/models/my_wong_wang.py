@@ -57,7 +57,7 @@ class ModifiedWongWang(ModelNumbaDfun):
                   Functional Connectivity Emerges from Structurally and
                   Dynamically Shaped Slow Linear Fluctuations*. The Journal of
                   Neuroscience 32(27), 11239-11252, 2013.
-    .. automethod:: ReducedWongWang.__init__
+    .. automethod:: ModifiedWongWang.__init__
     Equations taken from [DPA_2013]_ , page 11242
     .. math::
                  x_k       &=   w\,J_N \, S_k + I_o + J_N \mathbf\Gamma(S_k, S_j, u_{kj}),\\
@@ -110,9 +110,16 @@ class ModifiedWongWang(ModelNumbaDfun):
         doc="""[ms]. Parameter chosen to fit numerical solutions.""",
         order=6)
 
-    gamma = arrays.FloatArray(
+    gamma_e = arrays.FloatArray(
         label=r":math:`\gamma`",
-        default=numpy.array([0.641, ]),
+        default=numpy.array([0.000641, ]),
+        range=basic.Range(lo=0.0, hi=1.0, step=0.01),
+        doc="""Kinetic parameter""",
+        order=7)
+
+    gamma_i = arrays.FloatArray(
+        label=r":math:`\gamma`",
+        default=numpy.array([0.001, ]),
         range=basic.Range(lo=0.0, hi=1.0, step=0.01),
         doc="""Kinetic parameter""",
         order=7)
@@ -145,26 +152,19 @@ class ModifiedWongWang(ModelNumbaDfun):
         doc="""Excitatory recurrence""",
         order=11)
 
-    # J_i = arrays.FloatArray(
-    #     label=r":math:`J_{N}`",
-    #     default=numpy.array([1.]),
-    #     range=basic.Range(lo=0.2609, hi=0.5, step=0.001),
-    #     doc="""Excitatory recurrence""",
-    #     order=7)
-
-    J_e = arrays.FloatArray(
+    J = arrays.FloatArray(
         label=r":math:`J_{N}`",
         default=numpy.array([1., ]),
         range=basic.Range(lo=0.2609, hi=1., step=0.001),
         doc="""Excitatory recurrence""",
         order=12)
 
-    J_i = arrays.FloatArray(
-        label=r":math:`J_{N}`",
-        default=numpy.array([0.7, ]),
-        range=basic.Range(lo=0.2609, hi=1., step=0.001),
-        doc="""Excitatory recurrence""",
-        order=13)
+    # J_i = arrays.FloatArray(
+    #     label=r":math:`J_{N}`",
+    #     default=numpy.array([0.7, ]),
+    #     range=basic.Range(lo=0.2609, hi=1., step=0.001),
+    #     doc="""Excitatory recurrence""",
+    #     order=13)
 
     I_o = arrays.FloatArray(
         label=":math:`I_{o}`",
@@ -181,28 +181,6 @@ class ModifiedWongWang(ModelNumbaDfun):
         integration schemes.""",
         order=-1)
 
-    state_variable_range = basic.Dict(
-        label="State variable ranges [lo, hi]",
-        default={"S": numpy.array([0.0, 1.0])},
-        doc="Population firing rate",
-        order=15
-    )
-
-    variables_of_interest = basic.Enumerate(
-        label="Variables watched by Monitors",
-        options=["S_i", "S_e"],
-        default=["S_i", "S_e"],
-        select_multiple=True,
-        doc="""default state variables to be monitored""",
-        order=16)
-
-    W_e = arrays.FloatArray(
-        label=":math:`I_{o}`",
-        default=numpy.array([1., ]),
-        range=basic.Range(lo=0.0, hi=1.0, step=0.01),
-        doc="""[nA] Effective external input""",
-        order=14)
-
     W_i = arrays.FloatArray(
         label=":math:`I_{o}`",
         default=numpy.array([0.7, ]),
@@ -210,78 +188,128 @@ class ModifiedWongWang(ModelNumbaDfun):
         doc="""[nA] Effective external input""",
         order=15)
 
+    W_e = arrays.FloatArray(
+        label=":math:`I_{o}`",
+        default=numpy.array([1., ]),
+        range=basic.Range(lo=0.0, hi=1.0, step=0.01),
+        doc="""[nA] Effective external input""",
+        order=16)
+
     gcf = arrays.FloatArray(
         label=":math:`I_{o}`",
         default=numpy.array([0.11, ]),
         range=basic.Range(lo=0.0, hi=1.0, step=0.01),
         doc="""[nA] Effective external input""",
-        order=16)
+        order=17)
 
     w_bg_e = arrays.FloatArray(
         label=":math:`I_{o}`",
         default=numpy.array([0.03, ]),
         range=basic.Range(lo=0.0, hi=1.0, step=0.01),
         doc="""[nA] Effective external input""",
-        order=17)
+        order=18)
 
     w_bg_i = arrays.FloatArray(
         label=":math:`I_{o}`",
         default=numpy.array([0.15, ]),
         range=basic.Range(lo=0.0, hi=1.0, step=0.01),
         doc="""[nA] Effective external input""",
-        order=18)
+        order=19)
 
+    ext_input = arrays.FloatArray(
+        label=":math:`I_{o}`",
+        default=numpy.array([0., ]),
+        range=basic.Range(lo=0.0, hi=10000.0, step=0.01),
+        doc="""[nA] Effective external input""",
+        order=20)
+
+    state_variable_range = basic.Dict(
+        label="State variable ranges [lo, hi]",
+        default={"S_i": numpy.array([0.0, 1.0]), "S_e": numpy.array([0.0, 1.0])},
+        doc="Population firing rate",
+        order=21)
+
+    variables_of_interest = basic.Enumerate(
+        label="Variables watched by Monitors",
+        options=["S_i", "S_e"],
+        default=["S_i", "S_e"],
+        select_multiple=True,
+        doc="""default state variables to be monitored""",
+        order=22)
+
+    
 
     state_variables = ['S_i', 'S_e']
     _nvar = 2
-    cvar = numpy.array([0], dtype=numpy.int32)
+    cvar = numpy.array([0,1], dtype=numpy.int32)
 
     def configure(self):
         """  """
-        super(ReducedWongWang, self).configure()
+        super(ModifiedWongWang, self).configure()
         self.update_derived_parameters()
 
-    def _numpy_dfun(self, state_variables, coupling, local_coupling=0.0):
-        r"""
-        Equations taken from [DPA_2013]_ , page 11242
-        .. math::
-                 x_k       &=   w\,J_N \, S_k + I_o + J_N \mathbf\Gamma(S_k, S_j, u_{kj}),\\
-                 H(x_k)    &=  \dfrac{ax_k - b}{1 - \exp(-d(ax_k -b))},\\
-                 \dot{S}_k &= -\dfrac{S_k}{\tau_s} + (1 - S_k) \, H(x_k) \, \gamma
-        """
-        S_e   = state_variables[0]
-        S_i = state_variables[1]
+    # def _numpy_dfun(self, state_variables, coupling, local_coupling=0.0):
+    #     r"""
+    #     Equations taken from [DPA_2013]_ , page 11242
+    #     .. math::
+    #              x_k       &=   w\,J_N \, S_k + I_o + J_N \mathbf\Gamma(S_k, S_j, u_{kj}),\\
+    #              H(x_k)    &=  \dfrac{ax_k - b}{1 - \exp(-d(ax_k -b))},\\
+    #              \dot{S}_k &= -\dfrac{S_k}{\tau_s} + (1 - S_k) \, H(x_k) \, \gamma
+    #     """
+    #     S_e   = state_variables[0, :]
+    #     S_i = state_variables[1, :]
+    #     S_e[S_e<0] = 0.
+    #     S_e[S_e>1] = 1.
+    #     S_i[S_i<0] = 0.
+    #     S_i[S_i>1] = 1.
+    #     c_0 = coupling[0, :]
+
+
+    #     # if applicable
+    #     # lc_0 = local_coupling * S
+
+
+    #     x_e = self.W_e * self.I_o + self.gcf * S_e - self.J * S_i + self.ext_input * self.w_bg_e
+    #     x_i = self.W_i * self.I_o - S_i + self.ext_input * self.w_bg_i
+
+    #     H_e = (self.a_e * x_e - self.b_e) / (1 - numpy.exp(-self.d_e * (self.a_e * x_e - self.b_e)))
+    #     H_i = (self.a_i * x_i - self.b_i) / (1 - numpy.exp(-self.d_i * (self.a_e * x_i - self.b_i)))
+
+    #     dS_e = - (S_e / self.tau_e) + (1 - S_e) * H_e * self.gamma_e
+    #     dS_i = - (S_e / self.tau_i) + (1 - S_i) * H_i * self.gamma_i
+
+    #     # x  = self.w * self.J_N * S + self.I_o + self.J_N * c_0 + self.J_N * lc_0
+    #     # H = (self.a * x - self.b) / (1 - numpy.exp(-self.d * (self.a * x - self.b)))
+    #     # dS = - (S / self.tau_s) + (1 - S) * H * self.gamma
+
+    #     derivative_e = numpy.array([dS_e])
+    #     derivative_e = numpy.array([dS_i])
+    #     return (derivative_e, derivative_i)
+
+    def dfun(self, state_variables, coupling, local_coupling=0.0):
+
+        S_e = state_variables[0, :]
+        S_i = state_variables[1, :]
+
+        derivative = numpy.empty_like(state_variables)
+
         S_e[S_e<0] = 0.
         S_e[S_e>1] = 1.
         S_i[S_i<0] = 0.
         S_i[S_i>1] = 1.
+
         c_0 = coupling[0, :]
+        # lc_0 = local_coupling * S_i
 
-
-        # if applicable
-        # lc_0 = local_coupling * S
-
-
-        x_e = self.W_e * self.I_o + self.gcf * S_e - J * S_i + ext_input * w_bg_e
-        x_i = self.W_i * self.I_o - S_i + ext_input * w_bg_i
+        x_e = self.W_e * self.I_o + self.gcf * c_0 - self.J * S_i + self.ext_input * self.w_bg_e
+        x_i = self.W_i * self.I_o - S_i + self.ext_input * self.w_bg_i
 
         H_e = (self.a_e * x_e - self.b_e) / (1 - numpy.exp(-self.d_e * (self.a_e * x_e - self.b_e)))
         H_i = (self.a_i * x_i - self.b_i) / (1 - numpy.exp(-self.d_i * (self.a_e * x_i - self.b_i)))
 
-        dS_e = - (S_e / self.tau_e) + (1 - S_e) * H_e * self.gamma_e
-        dS_i = - (S_e / self.tau_i) + (1 - S_i) * H_i * self.gamma_i
 
-        # x  = self.w * self.J_N * S + self.I_o + self.J_N * c_0 + self.J_N * lc_0
-        # H = (self.a * x - self.b) / (1 - numpy.exp(-self.d * (self.a * x - self.b)))
-        # dS = - (S / self.tau_s) + (1 - S) * H * self.gamma
+        derivative[0] = - (S_e / self.tau_e) + (1 - S_e) * H_e * self.gamma_e
+        derivative[1] = - (S_e / self.tau_i) + H_i * self.gamma_i
 
-        derivative_e = numpy.array([dS_e])
-        derivative_e = numpy.array([dS_i])
-        return (derivative_e, derivative_i)
 
-    def dfun(self, x, c, local_coupling=0.0):
-        x_ = x.reshape(x.shape[:-1]).T
-        c_ = c.reshape(c.shape[:-1]).T + local_coupling * x[0]
-        deriv = _numba_dfun(x_, c_, self.a, self.b, self.d, self.gamma,
-                        self.tau_s, self.w, self.J_N, self.I_o)
-return deriv.T[..., numpy.newaxis]
+        return derivative
